@@ -442,9 +442,6 @@ export default function Home() {
           <p className="text-emerald-100 text-sm mt-6">No credit card required. Free forever plan available.</p>
         </div>
       </section>
-
-      {/* ─── FOOTER ─── */}
-      
     </main>
   );
 }

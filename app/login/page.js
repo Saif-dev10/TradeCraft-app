@@ -32,8 +32,7 @@ export default function Login() {
 
           {/* Social Login */}
           <div className="space-y-3 mb-8">
-
-            <button className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors text-slate-700 font-medium opacity cursor-pointer">
+            <button className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors text-slate-700 font-medium cursor-pointer">
               <FcGoogle className="text-xl" />
               Continue with Google
             </button>
@@ -138,11 +137,22 @@ export default function Login() {
       </div>
 
       {/* ─── RIGHT: VISUAL / TESTIMONIAL ─── */}
-      <div className="hidden lg:flex lg:w-1/2 bg-slate-950 relative overflow-hidden items-center justify-center">
-        {/* Subtle pattern overlay */}
-        <div className="absolute inset-0 opacity-20" 
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center">
+        
+        {/* Background image - FULL COVER */}
+        <div 
+          className="absolute inset-0 bg-[url('/Man-laptop.jpg')] bg-cover bg-center"
+          aria-hidden="true"
+        />
+        
+        {/* Dark overlay for text readability */}
+        <div className="absolute inset-0 bg-slate-950/70" />
+        
+        {/* Optional: subtle dot pattern overlay */}
+        <div 
+          className="absolute inset-0 opacity-10"
           style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)`,
+            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255,255,255,0.3) 1px, transparent 0)`,
             backgroundSize: '40px 40px'
           }}
         />
@@ -181,7 +191,7 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Decorative gradient blob */}
+        {/* Decorative gradient blobs */}
         <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl" />
         <div className="absolute -top-32 -left-32 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl" />
       </div>
