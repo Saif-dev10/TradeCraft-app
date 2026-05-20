@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useState } from "react";
+import { Navbar } from "../components/Navbar";
 
 export default function Home() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-white text-slate-900 font-sans antialiased">
+      <Navbar />
 
       {/* ─── HERO SECTION ─── */}
       <div className="relative w-full h-[85vh] min-h-[600px] flex items-center justify-center overflow-hidden">

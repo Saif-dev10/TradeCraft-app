@@ -1,13 +1,20 @@
 export function Sidebar() {
   return (
-    <>
-      <main className="bg-white w-60 fixed left-0 top-0 h-[100vh] p-4 flex flex-col justify-start pt-25 decoration-none shadow-md">
-        <ul className="flex flex-col gap-2 w-full">
-          <li className="cursor-pointer text-lg hover:bg-gray-200 active:opacity-75 p-2 pl-14">Journal</li>
-          <li className="cursor-pointer text-lg hover:bg-gray-200 active:opacity-75 p-2 pl-14">Calender</li>
-          <li className="cursor-pointer text-lg hover:bg-gray-200 active:opacity-75 p-2 pl-14">Trades</li>
-        </ul>
-      </main>
-    </>
+    <aside className="hidden md:flex md:w-60 md:sticky md:top-0 md:h-screen md:bg-white md:p-4 md:shadow-md md:flex-col">
+      
+      <ul className="flex flex-col gap-2 w-full mt-10">
+        <li className="cursor-pointer text-lg hover:bg-gray-200 active:opacity-75 p-2 pl-14 rounded-md">
+          Journal
+        </li>
+
+        <li className="cursor-pointer text-lg hover:bg-gray-200 active:opacity-75 p-2 pl-14 rounded-md">
+          Calendar
+        </li>
+
+        <li className="cursor-pointer text-lg hover:bg-gray-200 active:opacity-75 p-2 pl-14 rounded-md">
+          Trades
+        </li>
+      </ul>
+    </aside>
   );
 }
