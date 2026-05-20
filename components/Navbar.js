@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { RiMenuLine } from "react-icons/ri";
 import { IoCloseSharp } from "react-icons/io5";
+import Link from "next/link";
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -19,7 +20,7 @@ export function Navbar() {
   }
 
   return (
-    <main>
+    <main className="z-40 sticky top-0 z-50">
       <nav className="w-full flex items-center justify-between py-4 px-8 bg-slate-900/70 backdrop-blur-md text-slate-300 border-b border-white/10">
 
         <div 
@@ -38,9 +39,11 @@ export function Navbar() {
           </li>
           <li 
             className="hover:text-white active:opacity-75 transition-colors duration-200 cursor-pointer font-medium"
-            onClick={() => handleNavigate("/about")}
           >
-            About
+            <Link href="/about">
+              About
+            </Link>
+            
           </li>
           <li 
             className="hover:text-white active:opacity-75 transition-colors duration-200 cursor-pointer font-medium"
