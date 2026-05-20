@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "../../components/Sidebar";
 
 export default function Calendar() {
+  const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -38,22 +40,83 @@ export default function Calendar() {
     year === today.getFullYear()
   );
 
+  function goTo(path) {
+    router.push(path);
+    setMenuOpen(false);
+  }
+
   return (
     <div className="flex min-h-screen bg-stone-100">
-      <Sidebar />
+      {/* Desktop Sidebar - unchanged from your original */}
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
+
+      {/* Mobile Sidebar Drawer */}
+      <>
+        {/* Overlay */}
+        {menuOpen && (
+          <div
+            className="md:hidden fixed inset-0 bg-black/30 z-40"
+            onClick={() => setMenuOpen(false)}
+          />
+        )}
+
+        {/* Slide-out sidebar */}
+        <aside className={`
+          md:hidden fixed top-0 left-0 h-screen w-60 bg-white shadow-xl z-50 flex flex-col p-4
+          transition-transform duration-300 ease-in-out
+          ${menuOpen ? "translate-x-0" : "-translate-x-full"}
+        `}>
+          <h1
+            className="text-2xl font-bold text-center pt-4 cursor-pointer hover:text-stone-600 active:opacity-75 transition-colors text-stone-800"
+            onClick={() => goTo("/journal")}
+          >
+            TradeCraft
+          </h1>
+
+          <button
+            onClick={() => setMenuOpen(false)}
+            className="absolute top-4 right-4 p-2 rounded-lg hover:bg-stone-100 text-stone-600 text-lg"
+          >
+            ✕
+          </button>
+
+          <nav className="flex flex-col gap-1 w-full mt-10">
+            <button
+              onClick={() => goTo("/journal")}
+              className="text-left text-base py-2.5 px-4 rounded-md text-stone-600 hover:bg-stone-100 active:opacity-75 transition-colors"
+            >
+              Journal
+            </button>
+            <button
+              onClick={() => goTo("/calendar")}
+              className="text-left text-base py-2.5 px-4 rounded-md bg-stone-800 text-white font-medium"
+            >
+              Calendar
+            </button>
+            <button
+              onClick={() => goTo("/trades")}
+              className="text-left text-base py-2.5 px-4 rounded-md text-stone-600 hover:bg-stone-100 active:opacity-75 transition-colors"
+            >
+              Trades
+            </button>
+          </nav>
+        </aside>
+      </>
 
       <main className="flex-1 flex flex-col items-center justify-center p-4 pt-20 md:pt-6 relative">
         
-        {/* Mobile Burger Menu - Only on this page */}
-        <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-stone-200 flex items-center justify-between px-4 z-40 shadow-sm">
+        {/* Mobile Burger Header */}
+        <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-stone-200 flex items-center justify-between px-4 z-30 shadow-sm">
           <button
-            onClick={() => setMenuOpen(!menuOpen)}
+            onClick={() => setMenuOpen(true)}
             className="p-2 rounded-lg hover:bg-stone-100 transition-colors"
           >
             <div className="w-5 h-4 flex flex-col justify-between">
-              <span className={`block h-0.5 bg-stone-800 transition-all ${menuOpen ? "rotate-45 translate-y-[7px]" : ""}`} />
-              <span className={`block h-0.5 bg-stone-800 transition-all ${menuOpen ? "opacity-0" : ""}`} />
-              <span className={`block h-0.5 bg-stone-800 transition-all ${menuOpen ? "-rotate-45 -translate-y-[7px]" : ""}`} />
+              <span className="block h-0.5 bg-stone-800" />
+              <span className="block h-0.5 bg-stone-800" />
+              <span className="block h-0.5 bg-stone-800" />
             </div>
           </button>
 
@@ -61,36 +124,6 @@ export default function Calendar() {
 
           <div className="w-9" />
         </div>
-
-        {/* Mobile Nav Overlay */}
-        {menuOpen && (
-          <>
-            <div 
-              className="md:hidden fixed inset-0 bg-black/30 z-40"
-              onClick={() => setMenuOpen(false)}
-            />
-            <div className="md:hidden fixed top-16 left-0 right-0 bg-white border-b border-stone-200 shadow-lg z-40 p-4">
-              <button 
-                onClick={() => { window.location.href = "/journal"; }}
-                className="block w-full text-left py-3 px-4 text-stone-700 hover:bg-stone-100 rounded-md font-medium"
-              >
-                Journal
-              </button>
-              <button 
-                onClick={() => { window.location.href = "/calendar"; }}
-                className="block w-full text-left py-3 px-4 text-stone-800 bg-stone-100 rounded-md font-medium"
-              >
-                Calendar
-              </button>
-              <button 
-                onClick={() => { window.location.href = "/trades"; }}
-                className="block w-full text-left py-3 px-4 text-stone-700 hover:bg-stone-100 rounded-md font-medium"
-              >
-                Trades
-              </button>
-            </div>
-          </>
-        )}
 
         {/* Calendar */}
         <div className="bg-white rounded-xl shadow-md p-5 md:p-6 w-full max-w-2xl">
