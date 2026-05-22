@@ -1,8 +1,10 @@
- "use client";
-import { useRouter } from "next/navigation";
+"use client";
+
+import { useRouter, usePathname } from "next/navigation";
 
 export function Sidebar() {
   const router = useRouter();
+  const pathname = usePathname();
 
   function handleNavigation(path) {
     router.push(path);
@@ -19,24 +21,47 @@ export function Sidebar() {
 
       <ul className="flex flex-col gap-2 w-full mt-10">
         <li 
-          className="cursor-pointer text-lg hover:bg-gray-200 active:opacity-75 p-2 pl-14 rounded-md"
+          className={`cursor-pointer text-lg p-2 pl-14 rounded-md transition-colors ${
+            pathname === "/journal"
+              ? "bg-stone-800 text-white font-medium"
+              : "hover:bg-gray-200 active:opacity-75"
+          }`}
           onClick={() => handleNavigation("/journal")}
         >
           Journal
         </li>
 
         <li 
-          className="cursor-pointer text-lg hover:bg-gray-200 active:opacity-75 p-2 pl-14 rounded-md"
-          onClick={() => handleNavigation("/calender")}
+          className={`cursor-pointer text-lg p-2 pl-14 rounded-md transition-colors ${
+            pathname === "/calendar"
+              ? "bg-stone-800 text-white font-medium"
+              : "hover:bg-gray-200 active:opacity-75"
+          }`}
+          onClick={() => handleNavigation("/calendar")}
         >
           Calendar
         </li>
 
         <li 
-          className="cursor-pointer text-lg hover:bg-gray-200 active:opacity-75 p-2 pl-14 rounded-md"
+          className={`cursor-pointer text-lg p-2 pl-14 rounded-md transition-colors ${
+            pathname === "/trades"
+              ? "bg-stone-800 text-white font-medium"
+              : "hover:bg-gray-200 active:opacity-75"
+          }`}
           onClick={() => handleNavigation("/trades")}
         >
           Trades
+        </li>
+
+        <li 
+          className={`cursor-pointer text-lg p-2 pl-14 rounded-md transition-colors ${
+            pathname === "/calculator"
+              ? "bg-stone-800 text-white font-medium"
+              : "hover:bg-gray-200 active:opacity-75"
+          }`}
+          onClick={() => handleNavigation("/calculator")}
+        >
+          Calculator
         </li>
       </ul>
     </aside>

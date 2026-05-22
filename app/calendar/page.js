@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "../../components/Sidebar";
+import { RiMenuLine } from "react-icons/ri";
+import { IoCloseSharp } from "react-icons/io5";
 
 export default function Calendar() {
   const router = useRouter();
+  const pathname = usePathname();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -40,6 +43,13 @@ export default function Calendar() {
     year === today.getFullYear()
   );
 
+  const navItems = [
+    { label: "Journal", path: "/journal" },
+    { label: "Calendar", path: "/calendar" },
+    { label: "Trades", path: "/trades" },
+    { label: "Calculator", path: "/calculator" },
+  ];
+
   function goTo(path) {
     router.push(path);
     setMenuOpen(false);
@@ -47,14 +57,14 @@ export default function Calendar() {
 
   return (
     <div className="flex min-h-screen bg-stone-100">
-      {/* Desktop Sidebar - unchanged from your original */}
+      
+      {/* Desktop Sidebar */}
       <div className="hidden md:block">
         <Sidebar />
       </div>
 
       {/* Mobile Sidebar Drawer */}
       <>
-        {/* Overlay */}
         {menuOpen && (
           <div
             className="md:hidden fixed inset-0 bg-black/30 z-40"
@@ -62,7 +72,6 @@ export default function Calendar() {
           />
         )}
 
-        {/* Slide-out sidebar */}
         <aside className={`
           md:hidden fixed top-0 left-0 h-screen w-60 bg-white shadow-xl z-50 flex flex-col p-4
           transition-transform duration-300 ease-in-out
@@ -79,28 +88,23 @@ export default function Calendar() {
             onClick={() => setMenuOpen(false)}
             className="absolute top-4 right-4 p-2 rounded-lg hover:bg-stone-100 text-stone-600 text-lg"
           >
-            ✕
+            <IoCloseSharp className="text-2xl" />
           </button>
 
           <nav className="flex flex-col gap-1 w-full mt-10">
-            <button
-              onClick={() => goTo("/journal")}
-              className="text-left text-base py-2.5 px-4 rounded-md text-stone-600 hover:bg-stone-100 active:opacity-75 transition-colors"
-            >
-              Journal
-            </button>
-            <button
-              onClick={() => goTo("/calendar")}
-              className="text-left text-base py-2.5 px-4 rounded-md bg-stone-800 text-white font-medium"
-            >
-              Calendar
-            </button>
-            <button
-              onClick={() => goTo("/trades")}
-              className="text-left text-base py-2.5 px-4 rounded-md text-stone-600 hover:bg-stone-100 active:opacity-75 transition-colors"
-            >
-              Trades
-            </button>
+            {navItems.map((item) => (
+              <button
+                key={item.path}
+                onClick={() => goTo(item.path)}
+                className={`text-left text-base py-2.5 px-4 rounded-md transition-colors ${
+                  pathname === item.path
+                    ? "bg-stone-800 text-white font-medium"
+                    : "text-stone-600 hover:bg-stone-100 active:opacity-75"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
           </nav>
         </aside>
       </>
@@ -113,11 +117,7 @@ export default function Calendar() {
             onClick={() => setMenuOpen(true)}
             className="p-2 rounded-lg hover:bg-stone-100 transition-colors"
           >
-            <div className="w-5 h-4 flex flex-col justify-between">
-              <span className="block h-0.5 bg-stone-800" />
-              <span className="block h-0.5 bg-stone-800" />
-              <span className="block h-0.5 bg-stone-800" />
-            </div>
+            <RiMenuLine className="text-2xl text-stone-800" />
           </button>
 
           <h1 className="text-xl font-bold text-stone-800">TradeCraft</h1>
@@ -131,7 +131,7 @@ export default function Calendar() {
           <div className="flex items-center justify-between mb-6">
             <button
               onClick={prevMonth}
-              className="p-2 rounded-lg hover:bg-stone-100 text-stone-600 font-bold text-lg transition-colors"
+              className="p-2 rounded-lg hover:bg-stone-100 text-stone-600 font-bold text-lg cursor-pointer active:bg-stone-50 transition-colors"
             >
               ←
             </button>
@@ -142,7 +142,7 @@ export default function Calendar() {
             
             <button
               onClick={nextMonth}
-              className="p-2 rounded-lg hover:bg-stone-100 text-stone-600 font-bold text-lg transition-colors"
+              className="p-2 rounded-lg hover:bg-stone-100 text-stone-600 font-bold text-lg active:bg-stone-50 cursor-pointer transition-colors"
             >
               →
             </button>
@@ -181,7 +181,7 @@ export default function Calendar() {
           <div className="flex justify-center mt-6">
             <button
               onClick={() => setCurrentDate(new Date())}
-              className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors"
+              className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors cursor-pointer active:text-stone-500 transition-colors"
             >
               Back to Today
             </button>
