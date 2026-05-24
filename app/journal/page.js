@@ -98,15 +98,15 @@ export default function Journal() {
 
           <div className="flex-1" />
 
-          <button className="bg-stone-800 hover:bg-stone-700 active:opacity-75 py-2 px-4 rounded-md text-white text-sm font-medium cursor-pointer transition-colors">
+          <button className="bg-stone-800 hover:bg-stone-700 active:opacity-75 py-1.5 sm:py-2 px-2 sm:px-4 rounded-md text-white text-xs sm:text-sm font-medium cursor-pointer transition-colors shrink-0">
             Filters
           </button>
 
-          <button className="bg-stone-800 hover:bg-stone-700 active:opacity-75 py-2 px-4 rounded-md text-white text-sm font-medium cursor-pointer transition-colors">
+          <button className="bg-stone-800 hover:bg-stone-700 active:opacity-75 py-1.5 sm:py-2 px-2 sm:px-4 rounded-md text-white text-xs sm:text-sm font-medium cursor-pointer transition-colors shrink-0  sm:block">
             Account (1)
           </button>
 
-          <div className="border border-stone-300 rounded-md py-2 px-4 bg-white flex items-center">
+          <div className="border border-stone-300 rounded-md py-1.5 sm:py-2 px-2 sm:px-4 bg-white flex items-center shrink-0">
             <span className="text-sm text-stone-600 font-medium">
               {today}
             </span>
