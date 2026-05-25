@@ -169,7 +169,7 @@ export default function CalculatorPage() {
           className={`cursor-pointer text-lg p-2 pl-14 rounded-md transition-colors ${
             pathname === "/journal"
               ? "bg-stone-800 text-white font-medium"
-              : "hover:bg-gray-200 active:opacity-75"
+              : "text-stone-800 hover:bg-gray-200 active:opacity-75"
           }`}
           onClick={() => goTo("/journal")}
         >
@@ -180,7 +180,7 @@ export default function CalculatorPage() {
           className={`cursor-pointer text-lg p-2 pl-14 rounded-md transition-colors ${
             pathname === "/calendar"
               ? "bg-stone-800 text-white font-medium"
-              : "hover:bg-gray-200 active:opacity-75"
+              : "text-stone-800 hover:bg-gray-200 active:opacity-75"
           }`}
           onClick={() => goTo("/calendar")}
         >
@@ -191,7 +191,7 @@ export default function CalculatorPage() {
           className={`cursor-pointer text-lg p-2 pl-14 rounded-md transition-colors ${
             pathname === "/trades"
               ? "bg-stone-800 text-white font-medium"
-              : "hover:bg-gray-200 active:opacity-75"
+              : "text-stone-800 hover:bg-gray-200 active:opacity-75"
           }`}
           onClick={() => goTo("/trades")}
         >
@@ -202,7 +202,7 @@ export default function CalculatorPage() {
           className={`cursor-pointer text-lg p-2 pl-14 rounded-md transition-colors ${
             pathname === "/calculator"
               ? "bg-stone-800 text-white font-medium"
-              : "hover:bg-gray-200 active:opacity-75"
+              : "text-stone-800 hover:bg-gray-200 active:opacity-75"
           }`}
           onClick={() => goTo("/calculator")}
         >
