@@ -95,7 +95,7 @@ export default function Calendar() {
           ${menuOpen ? "translate-x-0" : "-translate-x-full"}
         `}>
           <h1
-            className="text-2xl font-bold text-center pt-4 cursor-pointer hover:text-stone-600 active:opacity-75 transition-colors text-stone-800"
+            className="text-2xl font-bold pt-4 cursor-pointer hover:text-stone-600 active:opacity-75 transition-colors text-stone-800"
             onClick={() => goTo("/journal")}
           >
             TradeCraft

@@ -20,7 +20,7 @@ export default function Journal() {
     { label: "Journal", path: "/journal" },
     { label: "Calendar", path: "/calendar" },
     { label: "Trades", path: "/trades" },
-    { label: "Calender", path: "/calender" },
+    { label: "Calculator", path: "/calculator" },
   ];
 
   function goTo(path) {
@@ -51,7 +51,7 @@ export default function Journal() {
           ${isMenuOpen ? "translate-x-0" : "-translate-x-full"}
         `}>
           <h1
-            className="text-2xl font-bold text-center pt-4 cursor-pointer hover:text-stone-600 active:opacity-75 transition-colors text-stone-800"
+            className="text-2xl font-bold pt-4 cursor-pointer hover:text-stone-600 active:opacity-75 transition-colors text-stone-800"
             onClick={() => goTo("/journal")}
           >
             TradeCraft
