@@ -103,7 +103,7 @@ export default function Calendar() {
 
           <button
             onClick={() => setMenuOpen(false)}
-            className="absolute top-4 right-4 p-2 rounded-lg hover:bg-stone-100 text-stone-600 text-lg"
+            className="absolute top-4 right-4 p-2 rounded-lg hover:bg-stone-100 text-stone-600 text-lg cursor-pointer"
           >
             <IoCloseSharp className="text-2xl" />
           </button>
@@ -113,7 +113,7 @@ export default function Calendar() {
               <button
                 key={item.path}
                 onClick={() => goTo(item.path)}
-                className={`text-left text-base py-2.5 px-4 rounded-md transition-colors ${
+                className={`text-left text-base py-2.5 px-4 rounded-md transition-colors cursor-pointer ${
                   pathname === item.path
                     ? "bg-stone-800 text-white font-medium"
                     : "text-stone-600 hover:bg-stone-100 active:opacity-75"
@@ -134,7 +134,7 @@ export default function Calendar() {
 
           <button
             onClick={() => setMenuOpen(true)}
-            className="md:hidden p-2 rounded-lg hover:bg-stone-100 transition-colors shrink-0"
+            className="md:hidden p-2 rounded-lg hover:bg-stone-100 transition-colors shrink-0 cursor-pointer"
           >
             <RiMenuLine className="text-2xl text-stone-800" />
           </button>
