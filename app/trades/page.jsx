@@ -160,7 +160,7 @@ export default function Trades() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState(null);
   const [editingTrade, setEditingTrade] = useState(null);
-  const [trades, setTrades] = useState([]);
+  // const [trades, setTrades] = useState([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   const navItems = [
@@ -177,15 +177,14 @@ export default function Trades() {
 
   const todayStr = new Date().toISOString().split("T")[0];
 
-  useEffect(() => {
+  // Trades data stored here....
+  
+  const [trades, setTrades] = useState(() => {
+    if (typeof window === "undefined") return initialTrades;
+
     const stored = JSON.parse(localStorage.getItem("trades") || "[]");
-    if (stored.length > 0) {
-      setTrades(stored);
-    } else {
-      setTrades(initialTrades);
-    }
-    setIsLoaded(true);
-  }, []);
+    return stored.length > 0 ? stored : initialTrades;
+  });
 
   function handleRowClick(trade) {
     setSelectedTrade(trade);
