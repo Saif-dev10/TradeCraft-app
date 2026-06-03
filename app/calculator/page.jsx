@@ -155,11 +155,16 @@ export default function CalculatorPage() {
       {/* Mobile Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 w-60 bg-white shadow-xl transform transition-transform duration-300 md:hidden ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-4">
-          <h1 className="text-2xl font-bold text-stone-800 pt-4">TradeCraft</h1>
+          <h1 
+            className="text-2xl font-bold text-stone-800 pt-4 hover:text-stone-600 cursor-pointer"
+            onClick={() => goTo("/journal")}
+          >
+            TradeCraft
+          </h1>
 
           {menuOpen && (<button
             onClick={() => setMenuOpen(false)}
-            className="absolute top-4 right-4 p-2 rounded-lg hover:bg-stone-100 text-stone-600 text-lg"
+            className="absolute top-4 right-4 p-2 rounded-lg hover:bg-stone-100 text-stone-600 text-lg cursor-pointer"
           >
             <IoCloseSharp className="text-2xl" />
           </button>)}
@@ -219,7 +224,7 @@ export default function CalculatorPage() {
         <header className="bg-white border-b border-stone-200 h-16 flex items-center gap-2 sm:gap-4 px-3 sm:px-6 shadow-sm sticky top-0 z-30">
           <button
             onClick={() => setMenuOpen(true)}
-            className="md:hidden p-2 rounded-lg hover:bg-stone-100 transition-colors shrink-0"
+            className="md:hidden p-2 rounded-lg hover:bg-stone-100 transition-colors shrink-0 cursor-pointer"
           >
             <RiMenuLine className="text-2xl text-stone-800" />
           </button>
