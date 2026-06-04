@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "../../components/Sidebar";
 import { RiMenuLine } from "react-icons/ri";
@@ -161,7 +161,7 @@ export default function Trades() {
   const [selectedTrade, setSelectedTrade] = useState(null);
   const [editingTrade, setEditingTrade] = useState(null);
   // const [trades, setTrades] = useState([]);
-  const [isLoaded, setIsLoaded] = useState(false);
+  // const [isLoaded, setIsLoaded] = useState(false);
 
   const navItems = [
     { label: "Journal", path: "/journal" },
@@ -169,6 +169,10 @@ export default function Trades() {
     { label: "Trades", path: "/trades" },
     { label: "Calculator", path: "/calculator" },
   ];
+
+  // useEffect(() => {
+  //   setIsLoaded(true);
+  // }, []);
 
   function goTo(path) {
     router.push(path);
@@ -182,8 +186,13 @@ export default function Trades() {
   const [trades, setTrades] = useState(() => {
     if (typeof window === "undefined") return initialTrades;
 
-    const stored = JSON.parse(localStorage.getItem("trades") || "[]");
-    return stored.length > 0 ? stored : initialTrades;
+    try {
+      const stored = JSON.parse(localStorage.getItem("trades") || "[]");
+
+      return stored.length > 0 ? stored : initialTrades;
+    } catch {
+      return initialTrades;
+    }
   });
 
   function handleRowClick(trade) {
@@ -244,13 +253,13 @@ export default function Trades() {
     return safeNum(val).toFixed(5);
   }
 
-  if (!isLoaded) {
-    return (
-      <div className="flex min-h-screen bg-stone-100 items-center justify-center">
-        <div className="text-stone-500 text-sm">Loading trades...</div>
-      </div>
-    );
-  }
+  // if (!isLoaded) {
+  //   return (
+  //     <div className="flex min-h-screen bg-stone-100 items-center justify-center">
+  //       <div className="text-stone-500 text-sm">Loading trades...</div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="flex min-h-screen bg-stone-100">
