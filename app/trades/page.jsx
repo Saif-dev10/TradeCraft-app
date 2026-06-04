@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "../../components/Sidebar";
 import { RiMenuLine } from "react-icons/ri";
@@ -154,13 +154,15 @@ function formatTimestamp(isoString) {
   return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
 }
 
+// console.log("TRADES PAGE MOUNTED");
+
 export default function Trades() {
   const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState(null);
   const [editingTrade, setEditingTrade] = useState(null);
-  // const [trades, setTrades] = useState([]);
+  const [trades, setTrades] = useState([]);
   // const [isLoaded, setIsLoaded] = useState(false);
 
   const navItems = [
@@ -183,17 +185,26 @@ export default function Trades() {
 
   // Trades data stored here....
   
-  const [trades, setTrades] = useState(() => {
-    if (typeof window === "undefined") return initialTrades;
+  // const [trades, setTrades] = useState(() => {
+  //   if (typeof window === "undefined") return initialTrades;
 
+  //   try {
+  //     const stored = JSON.parse(localStorage.getItem("trades") || "[]");
+
+  //     return stored.length > 0 ? stored : initialTrades;
+  //   } catch {
+  //     return initialTrades;
+  //   }
+  // });
+
+  useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem("trades") || "[]");
-
-      return stored.length > 0 ? stored : initialTrades;
+      setTrades(stored.length > 0 ? stored : initialTrades);
     } catch {
-      return initialTrades;
+      setTrades(initialTrades);
     }
-  });
+  }, []);
 
   function handleRowClick(trade) {
     setSelectedTrade(trade);
