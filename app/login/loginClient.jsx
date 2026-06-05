@@ -47,11 +47,11 @@ export default function Login() {
 
             <button 
               className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors text-slate-700 font-medium cursor-pointer"
-              onClick={async () => {
-                await signIn("apple", {
-                  callbackUrl: "/journal",
-                });
-              }}
+              // onClick={async () => {
+              //   await signIn("apple", {
+              //     callbackUrl: "/journal",
+              //   });
+              // }}
             >
               <FaApple className="text-xl text-slate-900" />
               Continue with Apple
