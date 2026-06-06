@@ -7,12 +7,13 @@ import { RiMenuLine } from "react-icons/ri";
 import { IoCloseSharp } from "react-icons/io5";
 import { FiEdit3 } from "react-icons/fi";
 
-const initialTrades = [
+// ─── Demo Data (shown until user has real trades) ───
+const DEMO_TRADES = [
   {
     id: 1,
     symbol: "EUR/USD",
-    openTimestamp: "2026-05-20 08:30:00",
-    closeTimestamp: "2026-05-20 14:15:00",
+    openTimestamp: "2026-06-01 08:30:00",
+    closeTimestamp: "2026-06-01 14:15:00",
     strategy: "Supply & Demand",
     timeframe: "1 Hour",
     entry: 1.0856,
@@ -27,8 +28,8 @@ const initialTrades = [
   {
     id: 2,
     symbol: "GBP/USD",
-    openTimestamp: "2026-05-19 09:45:00",
-    closeTimestamp: "2026-05-19 11:20:00",
+    openTimestamp: "2026-06-02 09:45:00",
+    closeTimestamp: "2026-06-02 11:20:00",
     strategy: "Breakout",
     timeframe: "15 Minutes",
     entry: 1.2745,
@@ -43,8 +44,8 @@ const initialTrades = [
   {
     id: 3,
     symbol: "XAU/USD",
-    openTimestamp: "2026-05-18 13:00:00",
-    closeTimestamp: "2026-05-18 16:30:00",
+    openTimestamp: "2026-06-03 13:00:00",
+    closeTimestamp: "2026-06-03 16:30:00",
     strategy: "Trend Following",
     timeframe: "4 Hours",
     entry: 2345.8,
@@ -55,86 +56,6 @@ const initialTrades = [
     session: "New York",
     outcome: "win",
     pnl: 342.0,
-  },
-  {
-    id: 4,
-    symbol: "USD/JPY",
-    openTimestamp: "2026-05-17 02:30:00",
-    closeTimestamp: "2026-05-17 06:45:00",
-    strategy: "Support & Resistance",
-    timeframe: "1 Hour",
-    entry: 156.42,
-    stopLoss: 156.85,
-    takeProfit: 155.5,
-    position: 0.3,
-    riskReward: "1:2.1",
-    session: "Tokyo",
-    outcome: "win",
-    pnl: 276.0,
-  },
-  {
-    id: 5,
-    symbol: "BTC/USD",
-    openTimestamp: "2026-05-16 15:20:00",
-    closeTimestamp: "2026-05-16 18:00:00",
-    strategy: "Reversal",
-    timeframe: "30 Minutes",
-    entry: 67250.0,
-    stopLoss: 67800.0,
-    takeProfit: 66000.0,
-    position: 0.05,
-    riskReward: "1:2",
-    session: "New York",
-    outcome: "loss",
-    pnl: -275.0,
-  },
-  {
-    id: 6,
-    symbol: "US30",
-    openTimestamp: "2026-05-15 10:00:00",
-    closeTimestamp: "2026-05-15 10:45:00",
-    strategy: "Scalping",
-    timeframe: "5 Minutes",
-    entry: 39520.0,
-    stopLoss: 39480.0,
-    takeProfit: 39600.0,
-    position: 1.0,
-    riskReward: "1:2",
-    session: "London/NY Overlap",
-    outcome: "breakeven",
-    pnl: 0.0,
-  },
-  {
-    id: 7,
-    symbol: "EUR/USD",
-    openTimestamp: "2026-05-14 07:15:00",
-    closeTimestamp: "2026-05-14 12:30:00",
-    strategy: "Supply & Demand",
-    timeframe: "1 Hour",
-    entry: 1.0789,
-    stopLoss: 1.077,
-    takeProfit: 1.083,
-    position: 0.4,
-    riskReward: "1:2.8",
-    session: "London",
-    outcome: "win",
-    pnl: 164.0,
-  },
-  {
-    id: 8,
-    symbol: "GBP/JPY",
-    openTimestamp: "2026-05-13 03:00:00",
-    closeTimestamp: "2026-05-13 08:20:00",
-    strategy: "Trend Following",
-    timeframe: "4 Hours",
-    entry: 199.35,
-    stopLoss: 199.8,
-    takeProfit: 198.2,
-    position: 0.2,
-    riskReward: "1:2.6",
-    session: "Tokyo",
-    outcome: "win",
-    pnl: 230.0,
   },
 ];
 
@@ -154,8 +75,6 @@ function formatTimestamp(isoString) {
   return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
 }
 
-// console.log("TRADES PAGE MOUNTED");
-
 export default function Trades() {
   const router = useRouter();
   const pathname = usePathname();
@@ -163,7 +82,7 @@ export default function Trades() {
   const [selectedTrade, setSelectedTrade] = useState(null);
   const [editingTrade, setEditingTrade] = useState(null);
   const [trades, setTrades] = useState([]);
-  // const [isLoaded, setIsLoaded] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(true);
 
   const navItems = [
     { label: "Journal", path: "/journal" },
@@ -172,10 +91,6 @@ export default function Trades() {
     { label: "Calculator", path: "/calculator" },
   ];
 
-  // useEffect(() => {
-  //   setIsLoaded(true);
-  // }, []);
-
   function goTo(path) {
     router.push(path);
     setMenuOpen(false);
@@ -183,28 +98,29 @@ export default function Trades() {
 
   const todayStr = new Date().toISOString().split("T")[0];
 
-  // Trades data stored here....
-  
-  // const [trades, setTrades] = useState(() => {
-  //   if (typeof window === "undefined") return initialTrades;
-
-  //   try {
-  //     const stored = JSON.parse(localStorage.getItem("trades") || "[]");
-
-  //     return stored.length > 0 ? stored : initialTrades;
-  //   } catch {
-  //     return initialTrades;
-  //   }
-  // });
-
+  // ─── Load trades from localStorage on mount ───
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem("trades") || "[]");
-      setTrades(stored.length > 0 ? stored : initialTrades);
+      if (stored.length > 0) {
+        setTrades(stored);
+        setIsDemoMode(false);
+      } else {
+        setTrades(DEMO_TRADES);
+        setIsDemoMode(true);
+      }
     } catch {
-      setTrades(initialTrades);
+      setTrades(DEMO_TRADES);
+      setIsDemoMode(true);
     }
   }, []);
+
+  // ─── Save to localStorage whenever trades change (only real data) ───
+  useEffect(() => {
+    if (!isDemoMode && trades.length > 0) {
+      localStorage.setItem("trades", JSON.stringify(trades));
+    }
+  }, [trades, isDemoMode]);
 
   function handleRowClick(trade) {
     setSelectedTrade(trade);
@@ -242,7 +158,12 @@ export default function Trades() {
     );
 
     setTrades(updatedTrades);
-    localStorage.setItem("trades", JSON.stringify(updatedTrades));
+
+    // If in demo mode, this edit transitions to real mode
+    if (isDemoMode) {
+      setIsDemoMode(false);
+      localStorage.setItem("trades", JSON.stringify(updatedTrades));
+    }
 
     if (selectedTrade?.id === editingTrade.id) {
       setSelectedTrade(editingTrade);
@@ -263,14 +184,6 @@ export default function Trades() {
   function safeFixed5(val) {
     return safeNum(val).toFixed(5);
   }
-
-  // if (!isLoaded) {
-  //   return (
-  //     <div className="flex min-h-screen bg-stone-100 items-center justify-center">
-  //       <div className="text-stone-500 text-sm">Loading trades...</div>
-  //     </div>
-  //   );
-  // }
 
   return (
     <div className="flex min-h-screen bg-stone-100">
@@ -366,6 +279,23 @@ export default function Trades() {
                 View and manage your trade history
               </p>
             </div>
+
+            {/* Demo Mode Banner */}
+            {isDemoMode && (
+              <div className="mb-4 p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <span className="text-lg sm:text-xl shrink-0">📊</span>
+                  <div>
+                    <p className="text-xs sm:text-sm font-bold text-amber-800">
+                      Demo Mode Active
+                    </p>
+                    <p className="text-[10px] sm:text-xs text-amber-700 mt-1 leading-relaxed">
+                      This section displays sample trade data for preview purposes. Once you begin adding your own trades through the journal or trade entry system, your actual trading history will automatically populate this dashboard and replace the demo data.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Trades Table */}
             <div className="bg-white rounded-xl shadow-md overflow-hidden">
