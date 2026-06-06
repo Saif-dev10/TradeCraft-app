@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "../../components/Sidebar";
-import { RiMenuLine } from "react-icons/ri";
+import { RiMenuLine, RiCloseLine, RiAddLine, RiCheckLine } from "react-icons/ri";
 import { IoCloseSharp } from "react-icons/io5";
 
 export default function Journal() {
@@ -13,10 +13,22 @@ export default function Journal() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // --- Custom Input States ---
   const [instrument, setInstrument] = useState("");
+  const [instrumentCustom, setInstrumentCustom] = useState(false);
+  const [instrumentInput, setInstrumentInput] = useState("");
+
   const [tradeType, setTradeType] = useState("");
+
   const [strategy, setStrategy] = useState("");
+  const [strategyCustom, setStrategyCustom] = useState(false);
+  const [strategyInput, setStrategyInput] = useState("");
+
   const [timeFrame, setTimeFrame] = useState("");
+  const [timeFrameCustom, setTimeFrameCustom] = useState(false);
+  const [timeFrameInput, setTimeFrameInput] = useState("");
+
   const [entry, setEntry] = useState("");
   const [stopLoss, setStopLoss] = useState("");
   const [takeProfit, setTakeProfit] = useState("");
@@ -46,15 +58,57 @@ export default function Journal() {
     };
   }
 
+  // Toggle custom input handlers
+  const handleInstrumentChange = (e) => {
+    const val = e.target.value;
+    if (val === "__custom__") {
+      setInstrumentCustom(true);
+      setInstrument("");
+    } else {
+      setInstrumentCustom(false);
+      setInstrument(val);
+      setInstrumentInput("");
+    }
+  };
+
+  const handleStrategyChange = (e) => {
+    const val = e.target.value;
+    if (val === "__custom__") {
+      setStrategyCustom(true);
+      setStrategy("");
+    } else {
+      setStrategyCustom(false);
+      setStrategy(val);
+      setStrategyInput("");
+    }
+  };
+
+  const handleTimeFrameChange = (e) => {
+    const val = e.target.value;
+    if (val === "__custom__") {
+      setTimeFrameCustom(true);
+      setTimeFrame("");
+    } else {
+      setTimeFrameCustom(false);
+      setTimeFrame(val);
+      setTimeFrameInput("");
+    }
+  };
+
   function handleSubmit(e) {
     e.preventDefault();
 
+    // Use custom input if active, otherwise use selected value
+    const finalInstrument = instrumentCustom ? instrumentInput : instrument;
+    const finalStrategy = strategyCustom ? strategyInput : strategy;
+    const finalTimeFrame = timeFrameCustom ? timeFrameInput : timeFrame;
+
     const newTrade = {
       id: Date.now(),
-      symbol: instrument,
+      symbol: finalInstrument,
       tradeType,
-      strategy,
-      timeframe: timeFrame,
+      strategy: finalStrategy,
+      timeframe: finalTimeFrame,
       entry: parseFloat(entry) || 0,
       stopLoss: parseFloat(stopLoss) || 0,
       takeProfit: parseFloat(takeProfit) || 0,
@@ -72,8 +126,80 @@ export default function Journal() {
     const existing = JSON.parse(localStorage.getItem("trades") || "[]");
     localStorage.setItem("trades", JSON.stringify([newTrade, ...existing]));
 
+    // Reset form
+    setTitle("");
+    setContent("");
+    setInstrument("");
+    setInstrumentCustom(false);
+    setInstrumentInput("");
+    setTradeType("");
+    setStrategy("");
+    setStrategyCustom(false);
+    setStrategyInput("");
+    setTimeFrame("");
+    setTimeFrameCustom(false);
+    setTimeFrameInput("");
+    setEntry("");
+    setStopLoss("");
+    setTakeProfit("");
+    setPositionSize("");
+    setRiskReward("");
+    setSession("");
+    setOutcome("");
+    setProfitLoss("");
+
     router.push("/trades");
   }
+
+  // Preset options
+  const instrumentOptions = [
+    "EUR/USD",
+    "GBP/USD",
+    "USD/JPY",
+    "XAU/USD",
+    "US30",
+    "BTC/USD",
+    "AUD/USD",
+    "USD/CAD",
+    "NZD/USD",
+    "EUR/GBP",
+    "GBP/JPY",
+    "NAS100",
+    "SPX500",
+    "USOIL",
+    "EUR/JPY",
+  ];
+
+  const strategyOptions = [
+    "Supply & Demand",
+    "Support & Resistance",
+    "Trend Following",
+    "Breakout",
+    "Reversal",
+    "Scalping",
+    "CRT",
+    "ICT",
+    "Smart Money Concepts",
+    "Price Action",
+    "Moving Average Crossover",
+    "Fibonacci Retracement",
+    "Bollinger Bands",
+    "RSI Divergence",
+  ];
+
+  const timeFrameOptions = [
+    "1 Minute",
+    "5 Minutes",
+    "15 Minutes",
+    "30 Minutes",
+    "1 Hour",
+    "4 Hours",
+    "Daily",
+    "Weekly",
+    "Monthly",
+    "Tick",
+    "Renko",
+  ];
 
   return (
     <main className="min-h-screen bg-stone-100 flex">
@@ -200,25 +326,60 @@ export default function Journal() {
             <section className="bg-white rounded-lg shadow-sm mt-8 border border-stone-200">
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Instrument */}
+                  {/* Instrument - Select or Custom */}
                   <div>
                     <label className="block text-sm font-medium text-stone-600 mb-1.5">
                       Instrument
                     </label>
-                    <select
-                      className="w-full border border-stone-200 rounded-md py-2.5 px-3 text-sm text-stone-700 bg-white outline-none focus:border-stone-400 transition-colors cursor-pointer"
-                      value={instrument}
-                      onChange={inputElem(setInstrument)}
-                      required
-                    >
-                      <option value="">Select instrument</option>
-                      <option value="EUR/USD">EUR/USD</option>
-                      <option value="GBP/USD">GBP/USD</option>
-                      <option value="USD/JPY">USD/JPY</option>
-                      <option value="XAU/USD">XAU/USD</option>
-                      <option value="US30">US30</option>
-                      <option value="BTC/USD">BTC/USD</option>
-                    </select>
+                    {!instrumentCustom ? (
+                      <div className="relative">
+                        <select
+                          className="w-full border border-stone-200 rounded-md py-2.5 px-3 text-sm text-stone-700 bg-white outline-none focus:border-stone-400 transition-colors cursor-pointer appearance-none pr-10"
+                          value={instrument}
+                          onChange={handleInstrumentChange}
+                          required={!instrumentCustom}
+                        >
+                          <option value="">Select instrument</option>
+                          {instrumentOptions.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                          <option value="__custom__">+ Add Custom...</option>
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                          <svg className="w-4 h-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="e.g. EUR/AUD, US100..."
+                          className="flex-1 border border-stone-200 rounded-md py-2.5 px-3 text-sm text-stone-700 placeholder-stone-400 outline-none focus:border-stone-400 transition-colors"
+                          value={instrumentInput}
+                          onChange={inputElem(setInstrumentInput)}
+                          autoFocus
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setInstrumentCustom(false);
+                            setInstrumentInput("");
+                          }}
+                          className="px-3 py-2 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-600 transition-colors cursor-pointer"
+                          title="Back to presets"
+                        >
+                          <RiCloseLine size={18} />
+                        </button>
+                      </div>
+                    )}
+                    {instrumentCustom && (
+                      <p className="text-xs text-stone-400 mt-1">Type any instrument or pair</p>
+                    )}
                   </div>
 
                   {/* Trade Type */}
@@ -227,7 +388,7 @@ export default function Journal() {
                       Trade Type
                     </label>
                     <select
-                      className="w-full border border-stone-200 rounded-md py-2.5 px-3 text-sm text-stone-700 bg-white outline-none focus:border-stone-400 transition-colors cursor-pointer"
+                      className="w-full border border-stone-200 rounded-md py-2.5 px-3 text-sm text-stone-700 bg-white outline-none focus:border-stone-400 transition-colors cursor-pointer appearance-none pr-10"
                       value={tradeType}
                       onChange={inputElem(setTradeType)}
                       required
@@ -238,51 +399,116 @@ export default function Journal() {
                     </select>
                   </div>
 
-                  {/* Strategy */}
+                  {/* Strategy - Select or Custom */}
                   <div>
                     <label className="block text-sm font-medium text-stone-600 mb-1.5">
                       Strategy
                     </label>
-                    <select
-                      className="w-full border border-stone-200 rounded-md py-2.5 px-3 text-sm text-stone-700 bg-white outline-none focus:border-stone-400 transition-colors cursor-pointer"
-                      value={strategy}
-                      onChange={inputElem(setStrategy)}
-                      required
-                    >
-                      <option value="">Select strategy</option>
-                      <option value="Supply & Demand">Supply & Demand</option>
-                      <option value="Support & Resistance">
-                        Support & Resistance
-                      </option>
-                      <option value="Trend Following">Trend Following</option>
-                      <option value="Breakout">Breakout</option>
-                      <option value="Reversal">Reversal</option>
-                      <option value="Scalping">Scalping</option>
-                      <option value="CRT">CRT</option>
-                      <option value="ICT">ICT</option>
-                    </select>
+                    {!strategyCustom ? (
+                      <div className="relative">
+                        <select
+                          className="w-full border border-stone-200 rounded-md py-2.5 px-3 text-sm text-stone-700 bg-white outline-none focus:border-stone-400 transition-colors cursor-pointer appearance-none pr-10"
+                          value={strategy}
+                          onChange={handleStrategyChange}
+                          required={!strategyCustom}
+                        >
+                          <option value="">Select strategy</option>
+                          {strategyOptions.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                          <option value="__custom__">+ Add Custom...</option>
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                          <svg className="w-4 h-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="e.g. My Custom Strategy..."
+                          className="flex-1 border border-stone-200 rounded-md py-2.5 px-3 text-sm text-stone-700 placeholder-stone-400 outline-none focus:border-stone-400 transition-colors"
+                          value={strategyInput}
+                          onChange={inputElem(setStrategyInput)}
+                          autoFocus
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStrategyCustom(false);
+                            setStrategyInput("");
+                          }}
+                          className="px-3 py-2 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-600 transition-colors cursor-pointer"
+                          title="Back to presets"
+                        >
+                          <RiCloseLine size={18} />
+                        </button>
+                      </div>
+                    )}
+                    {strategyCustom && (
+                      <p className="text-xs text-stone-400 mt-1">Type your own strategy name</p>
+                    )}
                   </div>
 
-                  {/* Timeframe */}
+                  {/* Timeframe - Select or Custom */}
                   <div>
                     <label className="block text-sm font-medium text-stone-600 mb-1.5">
                       Timeframe
                     </label>
-                    <select
-                      className="w-full border border-stone-200 rounded-md py-2.5 px-3 text-sm text-stone-700 bg-white outline-none focus:border-stone-400 transition-colors cursor-pointer"
-                      value={timeFrame}
-                      onChange={inputElem(setTimeFrame)}
-                      required
-                    >
-                      <option value="">Select timeframe</option>
-                      <option value="1 Minute">1 Minute</option>
-                      <option value="5 Minutes">5 Minutes</option>
-                      <option value="15 Minutes">15 Minutes</option>
-                      <option value="30 Minutes">30 Minutes</option>
-                      <option value="1 Hour">1 Hour</option>
-                      <option value="4 Hours">4 Hours</option>
-                      <option value="Daily">Daily</option>
-                    </select>
+                    {!timeFrameCustom ? (
+                      <div className="relative">
+                        <select
+                          className="w-full border border-stone-200 rounded-md py-2.5 px-3 text-sm text-stone-700 bg-white outline-none focus:border-stone-400 transition-colors cursor-pointer appearance-none pr-10"
+                          value={timeFrame}
+                          onChange={handleTimeFrameChange}
+                          required={!timeFrameCustom}
+                        >
+                          <option value="">Select timeframe</option>
+                          {timeFrameOptions.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                          <option value="__custom__">+ Add Custom...</option>
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                          <svg className="w-4 h-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="e.g. 2 Hours, 8H..."
+                          className="flex-1 border border-stone-200 rounded-md py-2.5 px-3 text-sm text-stone-700 placeholder-stone-400 outline-none focus:border-stone-400 transition-colors"
+                          value={timeFrameInput}
+                          onChange={inputElem(setTimeFrameInput)}
+                          autoFocus
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTimeFrameCustom(false);
+                            setTimeFrameInput("");
+                          }}
+                          className="px-3 py-2 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-600 transition-colors cursor-pointer"
+                          title="Back to presets"
+                        >
+                          <RiCloseLine size={18} />
+                        </button>
+                      </div>
+                    )}
+                    {timeFrameCustom && (
+                      <p className="text-xs text-stone-400 mt-1">Type any timeframe you use</p>
+                    )}
                   </div>
                 </div>
 
@@ -374,7 +600,7 @@ export default function Journal() {
                       Trading Session
                     </label>
                     <select
-                      className="w-full border border-stone-200 rounded-md py-2.5 px-3 text-sm text-stone-700 bg-white outline-none focus:border-stone-400 transition-colors cursor-pointer"
+                      className="w-full border border-stone-200 rounded-md py-2.5 px-3 text-sm text-stone-700 bg-white outline-none focus:border-stone-400 transition-colors cursor-pointer appearance-none pr-10"
                       value={session}
                       onChange={inputElem(setSession)}
                       required
@@ -384,9 +610,8 @@ export default function Journal() {
                       <option value="New York">New York</option>
                       <option value="Tokyo">Tokyo</option>
                       <option value="Sydney">Sydney</option>
-                      <option value="London/NY Overlap">
-                        London/NY Overlap
-                      </option>
+                      <option value="London/NY Overlap">London/NY Overlap</option>
+                      <option value="Asian">Asian</option>
                     </select>
                   </div>
                 </div>
@@ -398,7 +623,7 @@ export default function Journal() {
                       Trade Outcome
                     </label>
                     <select
-                      className="w-full border border-stone-200 rounded-md py-2.5 px-3 text-sm text-stone-700 bg-white outline-none focus:border-stone-400 transition-colors cursor-pointer"
+                      className="w-full border border-stone-200 rounded-md py-2.5 px-3 text-sm text-stone-700 bg-white outline-none focus:border-stone-400 transition-colors cursor-pointer appearance-none pr-10"
                       value={outcome}
                       onChange={inputElem(setOutcome)}
                       required
