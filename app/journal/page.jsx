@@ -1,10 +1,21 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "../../components/Sidebar";
-import { RiMenuLine, RiCloseLine, RiAddLine, RiCheckLine } from "react-icons/ri";
+import { RiMenuLine, RiCloseLine } from "react-icons/ri";
 import { IoCloseSharp } from "react-icons/io5";
+
+// ─── LocalStorage Helpers ───
+function loadFromStorage(key, fallback = null) {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
 
 export default function Journal() {
   const router = useRouter();
@@ -14,7 +25,15 @@ export default function Journal() {
   const [content, setContent] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // --- Custom Input States ---
+  // ─── Live Stats State (all start at 0) ───
+  const [netPnL, setNetPnL] = useState(0);
+  const [totalTrades, setTotalTrades] = useState(0);
+  const [winRate, setWinRate] = useState(0);
+  const [profitFactor, setProfitFactor] = useState(0);
+  const [accountBalance, setAccountBalance] = useState(0);
+  const [hasRealData, setHasRealData] = useState(false);
+
+  // ─── Custom Input States ───
   const [instrument, setInstrument] = useState("");
   const [instrumentCustom, setInstrumentCustom] = useState(false);
   const [instrumentInput, setInstrumentInput] = useState("");
@@ -58,7 +77,100 @@ export default function Journal() {
     };
   }
 
-  // Toggle custom input handlers
+  // ─── Calculate live stats from trades & calculator ───
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Load calculator account balance
+    const accounts = loadFromStorage("tradecraft_accounts", []);
+    const selectedId = loadFromStorage("tradecraft_selected_account", null);
+    const selectedAccount = accounts.find((a) => a.id === selectedId) || accounts[0];
+    const balance = selectedAccount?.balance || 0;
+    setAccountBalance(balance);
+
+    // Load trades
+    const trades = loadFromStorage("trades", []);
+
+    if (trades.length === 0) {
+      setNetPnL(0);
+      setTotalTrades(0);
+      setWinRate(0);
+      setProfitFactor(0);
+      setHasRealData(false);
+      return;
+    }
+
+    setHasRealData(true);
+
+    // Calculate Net P&L
+    const totalPnL = trades.reduce((sum, t) => sum + (parseFloat(t.pnl) || 0), 0);
+    setNetPnL(totalPnL);
+
+    // Total trades count
+    setTotalTrades(trades.length);
+
+    // Win Rate
+    const wins = trades.filter((t) => (parseFloat(t.pnl) || 0) > 0).length;
+    const losses = trades.filter((t) => (parseFloat(t.pnl) || 0) < 0).length;
+    const breakevens = trades.filter((t) => (parseFloat(t.pnl) || 0) === 0).length;
+    const winRateCalc = trades.length > 0 ? ((wins / trades.length) * 100).toFixed(2) : "0.00";
+    setWinRate(parseFloat(winRateCalc));
+
+    // Profit Factor = Gross Profit / Gross Loss
+    const grossProfit = trades
+      .filter((t) => (parseFloat(t.pnl) || 0) > 0)
+      .reduce((sum, t) => sum + (parseFloat(t.pnl) || 0), 0);
+    const grossLoss = Math.abs(
+      trades
+        .filter((t) => (parseFloat(t.pnl) || 0) < 0)
+        .reduce((sum, t) => sum + (parseFloat(t.pnl) || 0), 0)
+    );
+    const pf = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : grossProfit > 0 ? "∞" : "0.00";
+    setProfitFactor(parseFloat(pf));
+
+    // Also update journal_entries for calendar page integration
+    const journalEntries = trades.map((t) => ({
+      id: t.id,
+      date: t.openTimestamp,
+      pnl: t.pnl,
+      symbol: t.symbol,
+      strategy: t.strategy,
+      outcome: t.outcome,
+    }));
+    localStorage.setItem("tradecraft_journal_entries", JSON.stringify(journalEntries));
+  }, []);
+
+  // Re-calculate stats when trades change (listen for storage events)
+  useEffect(() => {
+    function handleStorageChange() {
+      const trades = loadFromStorage("trades", []);
+      if (trades.length > 0) {
+        setHasRealData(true);
+        const totalPnL = trades.reduce((sum, t) => sum + (parseFloat(t.pnl) || 0), 0);
+        setNetPnL(totalPnL);
+        setTotalTrades(trades.length);
+
+        const wins = trades.filter((t) => (parseFloat(t.pnl) || 0) > 0).length;
+        const winRateCalc = trades.length > 0 ? ((wins / trades.length) * 100).toFixed(2) : "0.00";
+        setWinRate(parseFloat(winRateCalc));
+
+        const grossProfit = trades
+          .filter((t) => (parseFloat(t.pnl) || 0) > 0)
+          .reduce((sum, t) => sum + (parseFloat(t.pnl) || 0), 0);
+        const grossLoss = Math.abs(
+          trades
+            .filter((t) => (parseFloat(t.pnl) || 0) < 0)
+            .reduce((sum, t) => sum + (parseFloat(t.pnl) || 0), 0)
+        );
+        const pf = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : grossProfit > 0 ? "∞" : "0.00";
+        setProfitFactor(parseFloat(pf));
+      }
+    }
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
   const handleInstrumentChange = (e) => {
     const val = e.target.value;
     if (val === "__custom__") {
@@ -98,7 +210,6 @@ export default function Journal() {
   function handleSubmit(e) {
     e.preventDefault();
 
-    // Use custom input if active, otherwise use selected value
     const finalInstrument = instrumentCustom ? instrumentInput : instrument;
     const finalStrategy = strategyCustom ? strategyInput : strategy;
     const finalTimeFrame = timeFrameCustom ? timeFrameInput : timeFrame;
@@ -124,7 +235,41 @@ export default function Journal() {
     };
 
     const existing = JSON.parse(localStorage.getItem("trades") || "[]");
-    localStorage.setItem("trades", JSON.stringify([newTrade, ...existing]));
+    const updated = [newTrade, ...existing];
+    localStorage.setItem("trades", JSON.stringify(updated));
+
+    // Update live stats immediately
+    const allTrades = updated;
+    const totalPnL = allTrades.reduce((sum, t) => sum + (parseFloat(t.pnl) || 0), 0);
+    setNetPnL(totalPnL);
+    setTotalTrades(allTrades.length);
+    setHasRealData(true);
+
+    const wins = allTrades.filter((t) => (parseFloat(t.pnl) || 0) > 0).length;
+    const winRateCalc = allTrades.length > 0 ? ((wins / allTrades.length) * 100).toFixed(2) : "0.00";
+    setWinRate(parseFloat(winRateCalc));
+
+    const grossProfit = allTrades
+      .filter((t) => (parseFloat(t.pnl) || 0) > 0)
+      .reduce((sum, t) => sum + (parseFloat(t.pnl) || 0), 0);
+    const grossLoss = Math.abs(
+      allTrades
+        .filter((t) => (parseFloat(t.pnl) || 0) < 0)
+        .reduce((sum, t) => sum + (parseFloat(t.pnl) || 0), 0)
+    );
+    const pf = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : grossProfit > 0 ? "∞" : "0.00";
+    setProfitFactor(parseFloat(pf));
+
+    // Update journal entries for calendar
+    const journalEntries = allTrades.map((t) => ({
+      id: t.id,
+      date: t.openTimestamp,
+      pnl: t.pnl,
+      symbol: t.symbol,
+      strategy: t.strategy,
+      outcome: t.outcome,
+    }));
+    localStorage.setItem("tradecraft_journal_entries", JSON.stringify(journalEntries));
 
     // Reset form
     setTitle("");
@@ -153,53 +298,33 @@ export default function Journal() {
 
   // Preset options
   const instrumentOptions = [
-    "EUR/USD",
-    "GBP/USD",
-    "USD/JPY",
-    "XAU/USD",
-    "US30",
-    "BTC/USD",
-    "AUD/USD",
-    "USD/CAD",
-    "NZD/USD",
-    "EUR/GBP",
-    "GBP/JPY",
-    "NAS100",
-    "SPX500",
-    "USOIL",
-    "EUR/JPY",
+    "EUR/USD", "GBP/USD", "USD/JPY", "XAU/USD", "US30", "BTC/USD",
+    "AUD/USD", "USD/CAD", "NZD/USD", "EUR/GBP", "GBP/JPY", "NAS100",
+    "SPX500", "USOIL", "EUR/JPY",
   ];
 
   const strategyOptions = [
-    "Supply & Demand",
-    "Support & Resistance",
-    "Trend Following",
-    "Breakout",
-    "Reversal",
-    "Scalping",
-    "CRT",
-    "ICT",
-    "Smart Money Concepts",
-    "Price Action",
-    "Moving Average Crossover",
-    "Fibonacci Retracement",
-    "Bollinger Bands",
-    "RSI Divergence",
+    "Supply & Demand", "Support & Resistance", "Trend Following", "Breakout",
+    "Reversal", "Scalping", "CRT", "ICT", "Smart Money Concepts",
+    "Price Action", "Moving Average Crossover", "Fibonacci Retracement",
+    "Bollinger Bands", "RSI Divergence",
   ];
 
   const timeFrameOptions = [
-    "1 Minute",
-    "5 Minutes",
-    "15 Minutes",
-    "30 Minutes",
-    "1 Hour",
-    "4 Hours",
-    "Daily",
-    "Weekly",
-    "Monthly",
-    "Tick",
-    "Renko",
+    "1 Minute", "5 Minutes", "15 Minutes", "30 Minutes", "1 Hour",
+    "4 Hours", "Daily", "Weekly", "Monthly", "Tick", "Renko",
   ];
+
+  // Format helpers
+  const formatCurrency = (val) => {
+    const num = parseFloat(val) || 0;
+    return num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const formatPercent = (val) => {
+    const num = parseFloat(val) || 0;
+    return num.toFixed(2);
+  };
 
   return (
     <main className="min-h-screen bg-stone-100 flex">
@@ -286,47 +411,101 @@ export default function Journal() {
         <div className="px-6 py-8 max-w-6xl w-full mx-auto">
           {/* Stats */}
           <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Net P&L */}
             <div className="bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition cursor-pointer text-center">
               <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">
                 Net P&L
               </p>
-              <p className="text-2xl font-bold text-emerald-700">+$700.00</p>
-              <p className="text-xs text-stone-400 mt-1">This month</p>
+              <p className={`text-2xl font-bold ${netPnL >= 0 ? "text-emerald-700" : "text-red-700"}`}>
+                {netPnL >= 0 ? "+" : ""}${formatCurrency(netPnL)}
+              </p>
+              <p className="text-xs text-stone-400 mt-1">
+                {hasRealData ? "Live from all trades" : "Start trading to see data"}
+              </p>
             </div>
 
+            {/* Total Trades */}
             <div className="bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition cursor-pointer text-center">
               <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">
                 Total Trades
               </p>
-              <p className="text-2xl font-bold text-stone-800">24</p>
-              <p className="text-xs text-stone-400 mt-1">8 open</p>
+              <p className="text-2xl font-bold text-stone-800">{totalTrades}</p>
+              <p className="text-xs text-stone-400 mt-1">
+                {hasRealData ? "All time" : "No trades yet"}
+              </p>
             </div>
 
+            {/* Win Rate */}
             <div className="bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition cursor-pointer text-center">
               <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">
                 Win Rate
               </p>
-              <p className="text-2xl font-bold text-stone-800">60.02%</p>
-              <p className="text-xs text-stone-400 mt-1">14 wins / 10 losses</p>
+              <p className="text-2xl font-bold text-stone-800">{formatPercent(winRate)}%</p>
+              <p className="text-xs text-stone-400 mt-1">
+                {hasRealData ? "Win percentage" : "—"}
+              </p>
             </div>
 
+            {/* Profit Factor */}
             <div className="bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition cursor-pointer text-center">
               <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">
                 Profit Factor
               </p>
-              <p className="text-2xl font-bold text-stone-800">1.44</p>
+              <p className="text-2xl font-bold text-stone-800">
+                {profitFactor === Infinity ? "∞" : formatPercent(profitFactor)}
+              </p>
               <p className="text-xs text-stone-400 mt-1">
-                Gross profit / Gross loss
+                {hasRealData ? "Gross profit / loss" : "—"}
               </p>
             </div>
           </section>
 
+          {/* Account Balance Display */}
+          <div className="mt-4 bg-white rounded-lg shadow-sm border border-stone-200 p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-stone-800 flex items-center justify-center">
+                <span className="text-white text-sm font-bold">$</span>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide">
+                  Calculator Account Balance
+                </p>
+                <p className="text-lg font-bold text-stone-800">
+                  ${formatCurrency(accountBalance)}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => router.push("/calculator")}
+              className="text-xs font-medium text-stone-600 hover:text-stone-900 transition-colors underline cursor-pointer"
+            >
+              Manage in Calculator →
+            </button>
+          </div>
+
+          {/* Demo Mode Message */}
+          {!hasRealData && (
+            <div className="mt-4 p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <div className="flex items-start gap-3">
+                <span className="text-lg sm:text-xl shrink-0">📊</span>
+                <div>
+                  <p className="text-xs sm:text-sm font-bold text-amber-800">
+                    Welcome to Your Trading Journal
+                  </p>
+                  <p className="text-[10px] sm:text-xs text-amber-700 mt-1 leading-relaxed">
+                    All statistics start at zero. Once you log your first trade or deposit funds via the Calculator, your dashboard will automatically update with real-time performance data across all pages.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit}>
             {/* Entry Options */}
-            <section className="bg-white rounded-lg shadow-sm mt-8 border border-stone-200">
+            <section className="bg-white rounded-lg shadow-sm mt-6 border border-stone-200">
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Instrument - Select or Custom */}
+                  {/* Instrument */}
                   <div>
                     <label className="block text-sm font-medium text-stone-600 mb-1.5">
                       Instrument
@@ -341,9 +520,7 @@ export default function Journal() {
                         >
                           <option value="">Select instrument</option>
                           {instrumentOptions.map((opt) => (
-                            <option key={opt} value={opt}>
-                              {opt}
-                            </option>
+                            <option key={opt} value={opt}>{opt}</option>
                           ))}
                           <option value="__custom__">+ Add Custom...</option>
                         </select>
@@ -366,12 +543,8 @@ export default function Journal() {
                         />
                         <button
                           type="button"
-                          onClick={() => {
-                            setInstrumentCustom(false);
-                            setInstrumentInput("");
-                          }}
+                          onClick={() => { setInstrumentCustom(false); setInstrumentInput(""); }}
                           className="px-3 py-2 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-600 transition-colors cursor-pointer"
-                          title="Back to presets"
                         >
                           <RiCloseLine size={18} />
                         </button>
@@ -399,7 +572,7 @@ export default function Journal() {
                     </select>
                   </div>
 
-                  {/* Strategy - Select or Custom */}
+                  {/* Strategy */}
                   <div>
                     <label className="block text-sm font-medium text-stone-600 mb-1.5">
                       Strategy
@@ -414,9 +587,7 @@ export default function Journal() {
                         >
                           <option value="">Select strategy</option>
                           {strategyOptions.map((opt) => (
-                            <option key={opt} value={opt}>
-                              {opt}
-                            </option>
+                            <option key={opt} value={opt}>{opt}</option>
                           ))}
                           <option value="__custom__">+ Add Custom...</option>
                         </select>
@@ -439,12 +610,8 @@ export default function Journal() {
                         />
                         <button
                           type="button"
-                          onClick={() => {
-                            setStrategyCustom(false);
-                            setStrategyInput("");
-                          }}
+                          onClick={() => { setStrategyCustom(false); setStrategyInput(""); }}
                           className="px-3 py-2 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-600 transition-colors cursor-pointer"
-                          title="Back to presets"
                         >
                           <RiCloseLine size={18} />
                         </button>
@@ -455,7 +622,7 @@ export default function Journal() {
                     )}
                   </div>
 
-                  {/* Timeframe - Select or Custom */}
+                  {/* Timeframe */}
                   <div>
                     <label className="block text-sm font-medium text-stone-600 mb-1.5">
                       Timeframe
@@ -470,9 +637,7 @@ export default function Journal() {
                         >
                           <option value="">Select timeframe</option>
                           {timeFrameOptions.map((opt) => (
-                            <option key={opt} value={opt}>
-                              {opt}
-                            </option>
+                            <option key={opt} value={opt}>{opt}</option>
                           ))}
                           <option value="__custom__">+ Add Custom...</option>
                         </select>
@@ -495,12 +660,8 @@ export default function Journal() {
                         />
                         <button
                           type="button"
-                          onClick={() => {
-                            setTimeFrameCustom(false);
-                            setTimeFrameInput("");
-                          }}
+                          onClick={() => { setTimeFrameCustom(false); setTimeFrameInput(""); }}
                           className="px-3 py-2 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-600 transition-colors cursor-pointer"
-                          title="Back to presets"
                         >
                           <RiCloseLine size={18} />
                         </button>
@@ -513,7 +674,6 @@ export default function Journal() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                  {/* Entry Price */}
                   <div>
                     <label className="block text-sm font-medium text-stone-600 mb-1.5">
                       Entry Price
@@ -528,8 +688,6 @@ export default function Journal() {
                       required
                     />
                   </div>
-
-                  {/* Stop Loss */}
                   <div>
                     <label className="block text-sm font-medium text-stone-600 mb-1.5">
                       Stop Loss
@@ -544,8 +702,6 @@ export default function Journal() {
                       required
                     />
                   </div>
-
-                  {/* Take Profit */}
                   <div>
                     <label className="block text-sm font-medium text-stone-600 mb-1.5">
                       Take Profit
@@ -563,7 +719,6 @@ export default function Journal() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                  {/* Position Size */}
                   <div>
                     <label className="block text-sm font-medium text-stone-600 mb-1.5">
                       Position Size (Lots)
@@ -578,8 +733,6 @@ export default function Journal() {
                       required
                     />
                   </div>
-
-                  {/* Risk Reward */}
                   <div>
                     <label className="block text-sm font-medium text-stone-600 mb-1.5">
                       Risk/Reward
@@ -593,8 +746,6 @@ export default function Journal() {
                       required
                     />
                   </div>
-
-                  {/* Session */}
                   <div>
                     <label className="block text-sm font-medium text-stone-600 mb-1.5">
                       Trading Session
@@ -617,7 +768,6 @@ export default function Journal() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  {/* Trade Outcome */}
                   <div>
                     <label className="block text-sm font-medium text-stone-600 mb-1.5">
                       Trade Outcome
@@ -635,8 +785,6 @@ export default function Journal() {
                       <option value="manual_close">Manual Close</option>
                     </select>
                   </div>
-
-                  {/* PnL */}
                   <div>
                     <label className="block text-sm font-medium text-stone-600 mb-1.5">
                       P&L ($)
@@ -656,7 +804,7 @@ export default function Journal() {
             </section>
 
             {/* Journal Form */}
-            <section className="bg-white rounded-lg shadow-sm mt-8 border border-stone-200">
+            <section className="bg-white rounded-lg shadow-sm mt-6 border border-stone-200">
               <div className="p-6">
                 <input
                   value={title}
@@ -665,7 +813,6 @@ export default function Journal() {
                   placeholder="Entry title..."
                   required
                 />
-
                 <textarea
                   value={content}
                   onChange={inputElem(setContent)}
