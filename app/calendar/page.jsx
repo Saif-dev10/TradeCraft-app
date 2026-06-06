@@ -1,16 +1,181 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "../../components/Sidebar";
 import { RiMenuLine } from "react-icons/ri";
 import { IoCloseSharp } from "react-icons/io5";
+
+// ─── useLocalStorage hook (SSR-safe for Next.js) ───
+function useLocalStorage(key, initialValue) {
+  const [storedValue, setStoredValue] = useState(initialValue);
+  const [firstLoadDone, setFirstLoadDone] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const item = window.localStorage.getItem(key);
+      if (item) {
+        setStoredValue(JSON.parse(item));
+      }
+    } catch (error) {
+      console.error("Error reading localStorage:", error);
+    }
+    setFirstLoadDone(true);
+  }, [key]);
+
+  useEffect(() => {
+    if (!firstLoadDone || typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(key, JSON.stringify(storedValue));
+    } catch (error) {
+      console.error("Error writing to localStorage:", error);
+    }
+  }, [key, storedValue, firstLoadDone]);
+
+  return [storedValue, setStoredValue];
+}
+
+// ─── Demo Data (shown until user has enough real data) ───
+const DEMO_WEEKLY_DATA = [
+  { week: "Week 1", pnl: 320.50, trades: 6, winRate: "66.7%" },
+  { week: "Week 2", pnl: -120.00, trades: 4, winRate: "25.0%" },
+  { week: "Week 3", pnl: 450.75, trades: 8, winRate: "75.0%" },
+  { week: "Week 4", pnl: 180.25, trades: 5, winRate: "60.0%" },
+];
+
+const DEMO_MONTHLY_DATA = [
+  { month: "January", pnl: 890.00, trades: 22, winRate: "63.6%" },
+  { month: "February", pnl: -210.50, trades: 18, winRate: "44.4%" },
+  { month: "March", pnl: 560.25, trades: 20, winRate: "60.0%" },
+  { month: "April", pnl: 340.75, trades: 16, winRate: "56.3%" },
+  { month: "May", pnl: 831.50, trades: 23, winRate: "65.2%" },
+];
+
+// ─── Demo Calendar Day Outcomes (for calendar coloring) ───
+const DEMO_CALENDAR_OUTCOMES = {
+  "2026-06-01": "profit",
+  "2026-06-02": "loss",
+  "2026-06-03": "profit",
+  "2026-06-04": "profit",
+  "2026-06-05": "loss",
+  "2026-06-06": "profit",
+  "2026-06-09": "loss",
+  "2026-06-10": "profit",
+  "2026-06-12": "profit",
+  "2026-06-15": "loss",
+  "2026-06-16": "profit",
+  "2026-06-18": "profit",
+  "2026-06-20": "loss",
+  "2026-06-22": "profit",
+  "2026-06-25": "profit",
+  "2026-06-28": "loss",
+};
 
 export default function Calendar() {
   const router = useRouter();
   const pathname = usePathname();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // ─── Real Data from localStorage ───
+  const [journalEntries, setJournalEntries] = useLocalStorage("tradecraft_journal_entries", []);
+  const [weeklyStats, setWeeklyStats] = useLocalStorage("tradecraft_weekly_stats", []);
+  const [monthlyStats, setMonthlyStats] = useLocalStorage("tradecraft_monthly_stats", []);
+  const [calendarOutcomes, setCalendarOutcomes] = useLocalStorage("tradecraft_calendar_outcomes", {});
+
+  const [hasEnoughData, setHasEnoughData] = useState(false);
+
+  // ─── Check if user has enough real data ───
+  useEffect(() => {
+    const enoughWeekly = weeklyStats.length >= 2;
+    const enoughMonthly = monthlyStats.length >= 2;
+    const enoughJournal = journalEntries.length >= 5;
+    setHasEnoughData(enoughWeekly || enoughMonthly || enoughJournal);
+  }, [weeklyStats, monthlyStats, journalEntries]);
+
+  // ─── Auto-calculate weekly/monthly stats from journal entries ───
+  useEffect(() => {
+    if (journalEntries.length === 0) return;
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    // Build calendar outcomes map
+    const newOutcomes = { ...calendarOutcomes };
+    const monthTrades = [];
+    const monthPnls = [];
+
+    journalEntries.forEach((entry) => {
+      if (!entry.date || !entry.pnl) return;
+      const entryDate = new Date(entry.date);
+      const dateKey = entry.date.split("T")[0];
+
+      // Calendar coloring
+      if (entry.pnl > 0) newOutcomes[dateKey] = "profit";
+      else if (entry.pnl < 0) newOutcomes[dateKey] = "loss";
+      else newOutcomes[dateKey] = "neutral";
+
+      // Current month aggregation for weekly stats
+      if (
+        entryDate.getFullYear() === currentYear &&
+        entryDate.getMonth() === currentMonth
+      ) {
+        const weekNum = Math.ceil(entryDate.getDate() / 7);
+        if (!monthTrades[weekNum]) monthTrades[weekNum] = { trades: 0, pnl: 0, wins: 0 };
+        monthTrades[weekNum].trades += 1;
+        monthTrades[weekNum].pnl += parseFloat(entry.pnl);
+        if (parseFloat(entry.pnl) > 0) monthTrades[weekNum].wins += 1;
+      }
+
+      // Yearly aggregation for monthly stats
+      if (entryDate.getFullYear() === currentYear) {
+        const m = entryDate.getMonth();
+        if (!monthPnls[m]) monthPnls[m] = { trades: 0, pnl: 0, wins: 0, monthName: "" };
+        monthPnls[m].trades += 1;
+        monthPnls[m].pnl += parseFloat(entry.pnl);
+        if (parseFloat(entry.pnl) > 0) monthPnls[m].wins += 1;
+      }
+    });
+
+    // Update calendar outcomes
+    setCalendarOutcomes(newOutcomes);
+
+    // Build weekly stats
+    const newWeekly = [];
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    for (let w = 1; w <= 5; w++) {
+      if (monthTrades[w]) {
+        const winRate = ((monthTrades[w].wins / monthTrades[w].trades) * 100).toFixed(1) + "%";
+        newWeekly.push({
+          week: `Week ${w}`,
+          pnl: parseFloat(monthTrades[w].pnl.toFixed(2)),
+          trades: monthTrades[w].trades,
+          winRate: winRate,
+        });
+      }
+    }
+    if (newWeekly.length > 0) setWeeklyStats(newWeekly);
+
+    // Build monthly stats
+    const newMonthly = [];
+    monthPnls.forEach((data, idx) => {
+      if (data) {
+        const winRate = ((data.wins / data.trades) * 100).toFixed(1) + "%";
+        newMonthly.push({
+          month: monthNames[idx],
+          pnl: parseFloat(data.pnl.toFixed(2)),
+          trades: data.trades,
+          winRate: winRate,
+        });
+      }
+    });
+    if (newMonthly.length > 0) setMonthlyStats(newMonthly);
+  }, [journalEntries]);
 
   const monthNames = [
     "January", "February", "March", "April", "May", "June",
@@ -43,6 +208,19 @@ export default function Calendar() {
     year === today.getFullYear()
   );
 
+  // ─── Get day outcome for calendar coloring ───
+  const getDayOutcome = (day) => {
+    if (!day) return null;
+    const dateKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    if (hasEnoughData && calendarOutcomes[dateKey]) {
+      return calendarOutcomes[dateKey];
+    }
+    if (!hasEnoughData && DEMO_CALENDAR_OUTCOMES[dateKey]) {
+      return DEMO_CALENDAR_OUTCOMES[dateKey];
+    }
+    return null;
+  };
+
   const navItems = [
     { label: "Journal", path: "/journal" },
     { label: "Calendar", path: "/calendar" },
@@ -55,20 +233,26 @@ export default function Calendar() {
     setMenuOpen(false);
   }
 
-  const weeklyData = [
-    { week: "Week 1", pnl: 320.50, trades: 6, winRate: "66.7%" },
-    { week: "Week 2", pnl: -120.00, trades: 4, winRate: "25.0%" },
-    { week: "Week 3", pnl: 450.75, trades: 8, winRate: "75.0%" },
-    { week: "Week 4", pnl: 180.25, trades: 5, winRate: "60.0%" },
-  ];
+  // ─── Determine which data to display ───
+  const displayWeeklyData = hasEnoughData && weeklyStats.length > 0 ? weeklyStats : DEMO_WEEKLY_DATA;
+  const displayMonthlyData = hasEnoughData && monthlyStats.length > 0 ? monthlyStats : DEMO_MONTHLY_DATA;
 
-  const monthlyData = [
-    { month: "January", pnl: 890.00, trades: 22, winRate: "63.6%" },
-    { month: "February", pnl: -210.50, trades: 18, winRate: "44.4%" },
-    { month: "March", pnl: 560.25, trades: 20, winRate: "60.0%" },
-    { month: "April", pnl: 340.75, trades: 16, winRate: "56.3%" },
-    { month: "May", pnl: 831.50, trades: 23, winRate: "65.2%" },
-  ];
+  // ─── Calculate totals ───
+  const weeklyTotal = useMemo(() => {
+    const totalPnL = displayWeeklyData.reduce((sum, w) => sum + w.pnl, 0);
+    const totalTrades = displayWeeklyData.reduce((sum, w) => sum + w.trades, 0);
+    const totalWins = displayWeeklyData.reduce((sum, w) => sum + (parseFloat(w.winRate) / 100 * w.trades), 0);
+    const avgWinRate = totalTrades > 0 ? ((totalWins / totalTrades) * 100).toFixed(1) + "%" : "0.0%";
+    return { pnl: totalPnL, trades: totalTrades, winRate: avgWinRate };
+  }, [displayWeeklyData]);
+
+  const monthlyTotal = useMemo(() => {
+    const totalPnL = displayMonthlyData.reduce((sum, m) => sum + m.pnl, 0);
+    const totalTrades = displayMonthlyData.reduce((sum, m) => sum + m.trades, 0);
+    const totalWins = displayMonthlyData.reduce((sum, m) => sum + (parseFloat(m.winRate) / 100 * m.trades), 0);
+    const avgWinRate = totalTrades > 0 ? ((totalWins / totalTrades) * 100).toFixed(1) + "%" : "0.0%";
+    return { pnl: totalPnL, trades: totalTrades, winRate: avgWinRate };
+  }, [displayMonthlyData]);
 
   const todayStr = today.toISOString().split("T")[0];
 
@@ -145,7 +329,7 @@ export default function Calendar() {
             Filters
           </button>
 
-          <button className="bg-stone-800 hover:bg-stone-700 active:opacity-75 py-1.5 sm:py-2 px-2 sm:px-4 rounded-md text-white text-xs sm:text-sm font-medium cursor-pointer transition-colors shrink-0  sm:block">
+          <button className="bg-stone-800 hover:bg-stone-700 active:opacity-75 py-1.5 sm:py-2 px-2 sm:px-4 rounded-md text-white text-xs sm:text-sm font-medium cursor-pointer transition-colors shrink-0 sm:block">
             Account (1)
           </button>
 
@@ -203,25 +387,57 @@ export default function Calendar() {
                   </div>
 
                   <div className="grid grid-cols-7 gap-px sm:gap-1">
-                    {calendarDays.map((day, index) => (
-                      <div
-                        key={index}
-                        className={`
-                          aspect-square flex items-center justify-center rounded text-[10px] sm:text-xs font-medium transition-colors min-h-[28px] sm:min-h-[36px]
-                          ${day === null
-                            ? "invisible"
-                            : isToday(day)
-                              ? "bg-stone-800 text-white hover:bg-stone-700"
-                              : "text-stone-700 hover:bg-stone-100 cursor-pointer"
-                          }
-                        `}
-                      >
-                        {day}
-                      </div>
-                    ))}
+                    {calendarDays.map((day, index) => {
+                      const outcome = getDayOutcome(day);
+                      let dayClass = "invisible";
+                      let textClass = "";
+
+                      if (day !== null) {
+                        if (isToday(day)) {
+                          dayClass = "bg-stone-800 text-white hover:bg-stone-700";
+                        } else if (outcome === "profit") {
+                          dayClass = "bg-emerald-100 text-emerald-800 hover:bg-emerald-200 cursor-pointer border border-emerald-300";
+                        } else if (outcome === "loss") {
+                          dayClass = "bg-red-100 text-red-800 hover:bg-red-200 cursor-pointer border border-red-300";
+                        } else if (outcome === "neutral") {
+                          dayClass = "bg-stone-200 text-stone-600 hover:bg-stone-300 cursor-pointer border border-stone-300";
+                        } else {
+                          dayClass = "text-stone-700 hover:bg-stone-100 cursor-pointer";
+                        }
+                      }
+
+                      return (
+                        <div
+                          key={index}
+                          className={`
+                            aspect-square flex items-center justify-center rounded text-[10px] sm:text-xs font-medium transition-colors min-h-[28px] sm:min-h-[36px]
+                            ${dayClass}
+                          `}
+                          title={outcome ? `Outcome: ${outcome}` : ""}
+                        >
+                          {day}
+                        </div>
+                      );
+                    })}
                   </div>
 
-                  <div className="flex justify-center mt-3 sm:mt-4">
+                  {/* Legend */}
+                  <div className="flex items-center justify-center gap-3 mt-3 sm:mt-4 text-[10px] sm:text-xs text-stone-500">
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded bg-emerald-100 border border-emerald-300"></div>
+                      <span>Profit</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded bg-red-100 border border-red-300"></div>
+                      <span>Loss</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded bg-stone-200 border border-stone-300"></div>
+                      <span>No Trade</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-center mt-2 sm:mt-3">
                     <button
                       onClick={() => setCurrentDate(new Date())}
                       className="text-xs font-medium text-stone-600 hover:text-stone-900 transition-colors cursor-pointer"
@@ -244,6 +460,17 @@ export default function Calendar() {
                     <span className="text-[10px] sm:text-xs text-stone-400 font-medium">{monthNames[month]} {year}</span>
                   </div>
 
+                  {!hasEnoughData && (
+                    <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-xs sm:text-sm text-amber-800 font-medium">
+                        📊 Demo Mode Active
+                      </p>
+                      <p className="text-[10px] sm:text-xs text-amber-700 mt-1">
+                        This section displays sample data for preview purposes. Once you begin journaling your trades consistently for at least one week, your actual trading performance will automatically populate this dashboard and replace the demo data.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="overflow-x-auto -mx-3 sm:-mx-5 px-3 sm:px-5">
                     <table className="w-full min-w-[320px]">
                       <thead>
@@ -255,7 +482,7 @@ export default function Calendar() {
                         </tr>
                       </thead>
                       <tbody>
-                        {weeklyData.map((week, idx) => (
+                        {displayWeeklyData.map((week, idx) => (
                           <tr key={idx} className="border-b border-stone-100 last:border-0 hover:bg-stone-50 transition-colors">
                             <td className="py-2 sm:py-3 pr-2 sm:pr-4 text-xs sm:text-sm font-medium text-stone-800">{week.week}</td>
                             <td className={`py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold text-right ${week.pnl >= 0 ? "text-emerald-700" : "text-red-700"}`}>
@@ -269,9 +496,11 @@ export default function Calendar() {
                       <tfoot>
                         <tr className="border-t-2 border-stone-200">
                           <td className="py-2 sm:py-3 pr-2 sm:pr-4 text-xs sm:text-sm font-bold text-stone-800">Total</td>
-                          <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold text-right text-emerald-700">+$831.50</td>
-                          <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold text-right text-stone-800">23</td>
-                          <td className="py-2 sm:py-3 pl-2 sm:pl-4 text-xs sm:text-sm font-bold text-right text-stone-800">65.2%</td>
+                          <td className={`py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold text-right ${weeklyTotal.pnl >= 0 ? "text-emerald-700" : "text-red-700"}`}>
+                            {weeklyTotal.pnl >= 0 ? "+" : ""}${weeklyTotal.pnl.toFixed(2)}
+                          </td>
+                          <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold text-right text-stone-800">{weeklyTotal.trades}</td>
+                          <td className="py-2 sm:py-3 pl-2 sm:pl-4 text-xs sm:text-sm font-bold text-right text-stone-800">{weeklyTotal.winRate}</td>
                         </tr>
                       </tfoot>
                     </table>
@@ -287,6 +516,17 @@ export default function Calendar() {
                     <span className="text-[10px] sm:text-xs text-stone-400 font-medium">Year to Date</span>
                   </div>
 
+                  {!hasEnoughData && (
+                    <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-xs sm:text-sm text-amber-800 font-medium">
+                        📊 Demo Mode Active
+                      </p>
+                      <p className="text-[10px] sm:text-xs text-amber-700 mt-1">
+                        This section displays sample data for preview purposes. Once you begin journaling your trades consistently for at least one month, your actual trading performance will automatically populate this dashboard and replace the demo data.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="overflow-x-auto -mx-3 sm:-mx-5 px-3 sm:px-5">
                     <table className="w-full min-w-[320px]">
                       <thead>
@@ -298,7 +538,7 @@ export default function Calendar() {
                         </tr>
                       </thead>
                       <tbody>
-                        {monthlyData.map((m, idx) => (
+                        {displayMonthlyData.map((m, idx) => (
                           <tr key={idx} className="border-b border-stone-100 last:border-0 hover:bg-stone-50 transition-colors">
                             <td className="py-2 sm:py-3 pr-2 sm:pr-4 text-xs sm:text-sm font-medium text-stone-800">{m.month}</td>
                             <td className={`py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold text-right ${m.pnl >= 0 ? "text-emerald-700" : "text-red-700"}`}>
@@ -312,9 +552,11 @@ export default function Calendar() {
                       <tfoot>
                         <tr className="border-t-2 border-stone-200">
                           <td className="py-2 sm:py-3 pr-2 sm:pr-4 text-xs sm:text-sm font-bold text-stone-800">Total</td>
-                          <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold text-right text-emerald-700">+$2,412.00</td>
-                          <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold text-right text-stone-800">99</td>
-                          <td className="py-2 sm:py-3 pl-2 sm:pl-4 text-xs sm:text-sm font-bold text-right text-stone-800">58.6%</td>
+                          <td className={`py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold text-right ${monthlyTotal.pnl >= 0 ? "text-emerald-700" : "text-red-700"}`}>
+                            {monthlyTotal.pnl >= 0 ? "+" : ""}${monthlyTotal.pnl.toFixed(2)}
+                          </td>
+                          <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-bold text-right text-stone-800">{monthlyTotal.trades}</td>
+                          <td className="py-2 sm:py-3 pl-2 sm:pl-4 text-xs sm:text-sm font-bold text-right text-stone-800">{monthlyTotal.winRate}</td>
                         </tr>
                       </tfoot>
                     </table>
