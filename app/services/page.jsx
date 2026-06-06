@@ -259,7 +259,7 @@ export default function ServicesPage() {
             </p>
 
             <a
-              href="/contact"
+              href="/login"
               className="mt-8 inline-flex items-center rounded-xl bg-blue-500 px-8 py-4 text-white font-semibold hover:bg-blue-600"
             >
               Start Tracking
