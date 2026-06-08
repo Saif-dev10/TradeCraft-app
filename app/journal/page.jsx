@@ -214,6 +214,11 @@ export default function Journal() {
     const finalStrategy = strategyCustom ? strategyInput : strategy;
     const finalTimeFrame = timeFrameCustom ? timeFrameInput : timeFrame;
 
+    const pnlValue = 
+      outcome === "loss"
+        ? -Math.abs(parseFloat(profitLoss) || 0)
+        : Math.abs(parseFloat(profitLoss) || 0);
+
     const newTrade = {
       id: Date.now(),
       symbol: finalInstrument,
@@ -227,7 +232,7 @@ export default function Journal() {
       riskReward: riskReward,
       session,
       outcome: outcome,
-      pnl: parseFloat(profitLoss) || 0,
+      pnl: pnlValue,
       title,
       content,
       openTimestamp: new Date().toISOString(),
@@ -787,12 +792,20 @@ export default function Journal() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-stone-600 mb-1.5">
-                      P&L ($)
+                      {/* P&L ($) */}
+
+                      {outcome === "loss"
+                        ? "Loss Amount ($)"
+                        : outcome === "win"
+                        ? "Profit Amount ($)"
+                        : "P&L Amount ($)"
+                      }
                     </label>
                     <input
                       type="number"
+                      min="0"
                       step="0.01"
-                      placeholder="0.00"
+                      placeholder="50.00"
                       className="w-full border border-stone-200 rounded-md py-2.5 px-3 text-sm text-stone-700 placeholder-stone-400 outline-none focus:border-stone-400 transition-colors"
                       value={profitLoss}
                       onChange={inputElem(setProfitLoss)}
