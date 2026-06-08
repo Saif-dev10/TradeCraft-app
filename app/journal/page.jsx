@@ -805,7 +805,7 @@ export default function Journal() {
                       type="number"
                       min="0"
                       step="0.01"
-                      placeholder="50.00"
+                      placeholder="0.00"
                       className="w-full border border-stone-200 rounded-md py-2.5 px-3 text-sm text-stone-700 placeholder-stone-400 outline-none focus:border-stone-400 transition-colors"
                       value={profitLoss}
                       onChange={inputElem(setProfitLoss)}
